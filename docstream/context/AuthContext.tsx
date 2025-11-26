@@ -4,13 +4,16 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 
 interface User {
-  id: number;
+  id: number;  
   staff_id: string;
   email: string;
   department: string;
   role: string;
+  name: string;
+  status: string;
+  is_active: boolean;
+  created_at: string;
 }
-
 interface AuthContextType {
   user: User | null;
   accessToken: string | null;
@@ -22,6 +25,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// In your AuthContext, add debugging:
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -34,25 +38,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const token = localStorage.getItem('accessToken');
           const userData = localStorage.getItem('user');
 
+          console.log('AuthProvider init - token:', token ? 'exists' : 'null');
+          console.log('AuthProvider init - userData:', userData);
+
           if (token && userData) {
             setAccessToken(token);
             setUser(JSON.parse(userData));
+            console.log('AuthProvider - user set:', JSON.parse(userData));
           }
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
-        // Clear invalid data
         if (typeof window !== 'undefined') {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('user');
         }
       } finally {
         setIsLoading(false);
+        console.log('AuthProvider - isLoading set to false');
       }
     };
 
     initializeAuth();
   }, []);
+
 
   const login = (token: string, userData: User) => {
     setAccessToken(token);

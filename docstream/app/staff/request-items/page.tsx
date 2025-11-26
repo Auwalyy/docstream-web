@@ -52,7 +52,7 @@ const RequestItems = () => {
   // Redirect if not authenticated
   useEffect(() => {
     if (!isLoading && (!accessToken || !user)) {
-      router.push('/login');
+      router.push('/');
     }
   }, [accessToken, user, isLoading, router]);
 
@@ -90,61 +90,79 @@ const RequestItems = () => {
     }, 5000);
   };
 
-  const handleSubmit = async () => {
-    if (request.items.length === 0) {
-      setMessage("❌ Please add at least one item before submitting");
-      return;
-    }
+ const handleSubmit = async () => {
+  console.log('🔍 === SUBMIT DEBUG ===');
+  console.log('User object:', user);
+  console.log('Access token exists:', !!accessToken);
+  
+  if (request.items.length === 0) {
+    setMessage("❌ Please add at least one item before submitting");
+    return;
+  }
 
-    if (!user?.id || !accessToken) {
-      setMessage("❌ You must be logged in to submit requests");
-      router.push('/login');
-      return;
-    }
+  // FIX: Check for staff_id instead of id
+  if (!user?.staff_id || !accessToken) {
+    console.log('Missing auth - user.staff_id:', user?.staff_id, 'accessToken:', !!accessToken);
+    setMessage("❌ You must be logged in to submit requests");
+    router.push('/');
+    return;
+  }
 
-    setLoading(true);
-    setMessage("");
+  setLoading(true);
+  setMessage("");
 
+  try {
+    const payload = {
+      items: request.items,
+      created_by: user.staff_id, // FIX: Use staff_id instead of id
+    };
+
+    console.log('Sending payload:', payload);
+    console.log('Authorization header:', `Bearer ${accessToken}`);
+
+    const response = await fetch("http://127.0.0.1:8000/api/v1/item-request/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(payload),
+    });
+
+    console.log('Response status:', response.status);
+    
+    let data;
     try {
-      const payload = {
-        items: request.items,
-        created_by: user.id, // Use actual user ID from auth context
-      };
-
-      const response = await fetch("http://127.0.0.1:8000/api/v1/item-request/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-      
-      if (response.ok) {
-        showSuccessPopup(request.items.length);
-        setRequest({
-          name: "",
-          uniqueId: "",
-          division: "",
-          items: [],
-        });
-      } else {
-        if (response.status === 401) {
-          setMessage("❌ Session expired. Please login again.");
-          router.push('/login');
-        } else {
-          setMessage(`❌ Failed: ${data.detail || JSON.stringify(data)}`);
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      setMessage("❌ Network error. Please check your connection.");
-    } finally {
-      setLoading(false);
+      data = await response.json();
+      console.log('Response data:', data);
+    } catch (jsonError) {
+      console.log('JSON parse error:', jsonError);
+      data = { error: 'Invalid JSON response' };
     }
-  };
+    
+    if (response.ok) {
+      showSuccessPopup(request.items.length);
+      setRequest({
+        name: "",
+        uniqueId: "",
+        division: "",
+        items: [],
+      });
+    } else {
+      if (response.status === 401) {
+        setMessage("❌ Session expired. Please login again.");
+        router.push('/login');
+      } else {
+        setMessage(`❌ Failed: ${data.detail || JSON.stringify(data)}`);
+      }
+    }
+  } catch (err) {
+    console.error('Request error:', err);
+    setMessage("❌ Network error. Please check your connection.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const closePopup = () => {
     setShowPopup(false);

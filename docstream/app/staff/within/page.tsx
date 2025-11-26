@@ -69,7 +69,7 @@ const WithInRequest = () => {
   // ✅ Redirect if not authenticated
   useEffect(() => {
     if (!isLoading && (!accessToken || !user)) {
-      router.push('/login');
+      router.push('/');
     }
   }, [accessToken, user, isLoading, router]);
 

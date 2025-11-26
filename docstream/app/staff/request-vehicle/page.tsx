@@ -73,7 +73,7 @@ export default function RequestVehicle() {
   const handleWithinRequest = () => {
     if (!accessToken || !user) {
       alert("Please login first");
-      router.push("/login");
+      router.push("/");
       return;
     }
     router.push("/staff/within");
